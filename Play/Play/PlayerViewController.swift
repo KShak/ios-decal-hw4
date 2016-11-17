@@ -15,13 +15,16 @@ class PlayerViewController: UIViewController {
     var scAPI: SoundCloudAPI!
 
     var currentIndex: Int!
-    var player: AVQueuePlayer!
+    var currentPlaying: Int!
+    var player: AVPlayer!
+    var songs: [String]!
+    var playerItems: [AVPlayerItem]!
     var trackImageView: UIImageView!
 
     var playPauseButton: UIButton!
     var nextButton: UIButton!
     var previousButton: UIButton!
-
+    
     var artistLabel: UILabel!
     var titleLabel: UILabel!
     var didPlay: [Track]!
@@ -38,8 +41,9 @@ class PlayerViewController: UIViewController {
         self.didPlay = []
         currentIndex = 0
 
-        player = AVQueuePlayer()
-
+        player = AVPlayer()
+        playerItems = [AVPlayerItem]()
+        songs = [String]()
         loadVisualElements()
         loadPlayerButtons()
     }
@@ -133,9 +137,44 @@ class PlayerViewController: UIViewController {
         let path = Bundle.main.path(forResource: "Info", ofType: "plist")
         let clientID = NSDictionary(contentsOfFile: path!)?.value(forKey: "client_id") as! String
         let track = tracks[currentIndex]
-        let url = URL(string: "https://api.soundcloud.com/tracks/\(track.id as Int)/stream?client_id=\(clientID)")!
+        let temp = "https://api.soundcloud.com/tracks/\(track.id as Int)/stream?client_id=\(clientID)"
+        let url = URL(string: temp)!
+        let song = AVPlayerItem(url: url)
         // FILL ME IN
-
+        var newSong = true
+        for each in songs {
+            if each == temp {
+                newSong = false
+                break
+            }
+        }
+        if newSong {
+            songs.append(temp)
+            playerItems.append(song)
+            player.replaceCurrentItem(with: song)
+            player.play()
+            currentPlaying = currentIndex
+            if !sender.isSelected {
+                sender.isSelected = !sender.isSelected
+            }
+        } else {
+            if songs[currentPlaying] == temp {
+                if sender.isSelected {
+                    player.pause()
+                } else {
+                    player.play()
+                }
+                sender.isSelected = !sender.isSelected
+            } else {
+                player.replaceCurrentItem(with: song)
+                player.play()
+                currentPlaying = currentIndex
+                if !sender.isSelected {
+                    sender.isSelected = !sender.isSelected
+                }
+            }
+            
+        }
     }
 
     /*
@@ -145,7 +184,33 @@ class PlayerViewController: UIViewController {
      * Remember to update the currentIndex
      */
     func nextTrackTapped(_ sender: UIButton) {
-        // FILL ME IN
+        if currentIndex < tracks.count-1 {
+            currentIndex = currentIndex + 1
+            loadTrackElements()
+            if player.rate > 0 {
+                player.pause()
+                playOrPauseTrack(playPauseButton)
+            } else {
+                let path = Bundle.main.path(forResource: "Info", ofType: "plist")
+                let clientID = NSDictionary(contentsOfFile: path!)?.value(forKey: "client_id") as! String
+                let track = tracks[currentIndex]
+                let temp = "https://api.soundcloud.com/tracks/\(track.id as Int)/stream?client_id=\(clientID)"
+                let url = URL(string: temp)!
+                let song = AVPlayerItem(url: url)
+                var newSong = true
+                for each in songs {
+                    if each == temp {
+                        newSong = false
+                        break
+                    }
+                }
+                if newSong {
+                    songs.append(temp)
+                    playerItems.append(song)
+                }
+                
+            }
+        }
     }
 
     /*
@@ -160,6 +225,18 @@ class PlayerViewController: UIViewController {
 
     func previousTrackTapped(_ sender: UIButton) {
         // FILL ME IN
+        if player.currentTime().seconds > 3 {
+            player.seek(to: CMTimeMake(0,1))
+        } else {
+            if currentIndex > 0 {
+                currentIndex = currentIndex - 1
+                loadTrackElements()
+                if player.rate > 0 {
+                    player.pause()
+                    playOrPauseTrack(playPauseButton)
+                }
+            }
+        }
     }
 
 
